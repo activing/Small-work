@@ -1,14 +1,21 @@
 <template>
   <div id='app'>
+    <div class='total'>总分： {{this.total}} 分</div>
     <div class='main'>
       <div class='row' v-for='(items,index) of arr' :key='index'>
         <div
           :class='`c-${item} item`'
           v-for='(item,index) of items'
           :key='index'
-        >{{item>0?item:'0'}}</div>
+        >{{item>0?item:''}}</div>
       </div>
     </div>
+    <footer>
+        <h2>玩法说明：</h2>
+        <p>1.用键盘上下左右键控制数字走向</p>
+        <p>2.当点击了一个方向时，格子中的数字会全部往那个方向移动，直到不能再移动，如果有相同的数字则会合并</p>
+        <p>3.当格子中不再有可移动和可合并的数字时，游戏结束</p>
+    </footer>
   </div>
 </template>
 
@@ -17,7 +24,7 @@ export default {
   name: 'app',
   data () {
     return {
-      arr: [[4, 16, 2, 4], [2, 8, 4, 2], [2, 16, 2, 4], [8, 16, 4, 2]], // 初始数组
+      arr: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], // 初始数组
       Copyarr: [[], [], [], []],
       initData: [], // 数据初始化后的数组
       haveGrouping: false, // 有可以合并的数字
@@ -25,7 +32,9 @@ export default {
       endGap: true, // 判断最边上有没有空隙 默认有空隙
       middleGap: true, // 真 为某行中间有空隙
       haveZero: true, // 当前页面有没有 0
-      total: 0 // 总分数
+      total: 0, // 总分数
+      itIs2048: false, // 是否成功
+      max: 2048 // 最高分数
     }
   },
   methods: {
@@ -34,7 +43,6 @@ export default {
       this.Init() // 数据初始化 合并数字
       this.IfInvalid() // 判断是否无效
       this.Rendering(keyCode) // 渲染到页面
-      this.RandomlyCreate() // 随机空白处生成数字 计算总分数 判断是否通关
     },
     WhetherToRotate (keyCode) { // 是否需要将上下操作转换为左右操作
       if (keyCode === 38 || keyCode === 40) { // 38 是上 40 是下
@@ -64,38 +72,65 @@ export default {
       if (keyCode === 38 || keyCode === 40) { // 38 是上 40 是下
         this.Copyarr = this.ToRotate(this.Copyarr)
       }
-      console.log(`中间有空隙吗？ ${this.middleGap ? '有' : '没有'}`)
-      console.log(`有可合并数字吗？ ${this.haveGrouping ? '有' : '没有'}`)
-      console.log(`最边上有空隙吗？ ${this.endGap ? '有' : '没有'}`)
-    },
-    RandomlyCreate () { // 随机空白处创建新数字
-      // 判断有没有可以新建的地方
       if (this.haveGrouping || this.endGap || this.middleGap) {
-        let copyarr = this.Copyarr
-        let zero = [] // 做一个抽奖的箱子
-        let subscript = 0 // 做一个拿到的奖品号
-        let number = 0 // 奖品号兑换的物品
-        // 找到所有的 0 将下标添加到新的数组
-        copyarr.forEach((items, index) => {
-          items.forEach((item, i) => {
-            if (item === 0) {
-              zero.push({ x: index, y: i })
-            }
-          })
-        })
-        // 取随机数 然后在空白坐标集合中找到它
-        subscript = Math.floor(Math.random() * zero.length)
-        if (Math.floor(Math.random() * 10) % 3 === 0) {
-          number = 4 // 三分之一的机会
-        } else {
-          number = 2 // 三分之二的机会
-        }
-        this.Copyarr[zero[subscript].x][zero[subscript].y] = number
+        this.RandomlyCreate(this.Copyarr)
+      } else if (this.haveZero) {
+
       } else {
-        console.log(this.haveGrouping)
-        alert('抱歉你失败了')
+        if (this.itIs2048) {
+          this.RandomlyCreate(this.Copyarr)
+          alert('恭喜达成2048!')
+          // this.arr = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+          // this.RandomlyCreate(this.arr)
+        } else {
+          this.RandomlyCreate(this.Copyarr)
+          alert('游戏结束!')
+          // this.arr = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+          // this.RandomlyCreate(this.arr)
+        }
       }
-      this.arr = this.Copyarr
+      if (this.itIs2048) {
+        this.RandomlyCreate(this.Copyarr)
+        alert('恭喜达成2048!')
+        // this.arr = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        // this.RandomlyCreate(this.arr)
+      }
+    },
+    RandomlyCreate (Copyarr) { // 随机空白处创建新数字
+      // 判断有没有可以新建的地方
+      let max = this.max
+      let copyarr = Copyarr
+      let zero = [] // 做一个抽奖的箱子
+      let subscript = 0 // 做一个拿到的奖品号
+      let number = 0 // 奖品号兑换的物品
+      // 找到所有的 0 将下标添加到新的数组
+      copyarr.forEach((items, index) => {
+        items.forEach((item, i) => {
+          if (item === 0) {
+            zero.push({ x: index, y: i })
+          }
+        })
+      })
+      // 取随机数 然后在空白坐标集合中找到它
+      subscript = Math.floor(Math.random() * zero.length)
+      if (Math.floor(Math.random() * 10) % 3 === 0) {
+        number = 4 // 三分之一的机会
+      } else {
+        number = 2 // 三分之二的机会
+      }
+      if (zero.length) {
+        Copyarr[zero[subscript].x][zero[subscript].y] = number
+        this.arr = Copyarr
+      }
+      this.total = 0
+      this.arr.forEach(items => {
+        items.forEach(item => {
+          if (item === max && !this.itIs2048) {
+            this.itIs2048 = true
+          }
+          this.total += item
+        })
+      })
     },
     DataDetails () { // 非零数字详情
       let notZero = []
@@ -162,6 +197,7 @@ export default {
           initData[j] = newarr
         }
       }
+      this.itIshuave(grouping)
       return initData
     },
     MiddleGap () { // 检查每行中间有没有空隙
@@ -228,13 +264,38 @@ export default {
       return afterCopyingArr
     },
     itIshuave (grouping) { // 判断有没有可合并的数字
-      console.log(grouping)
       this.haveGrouping = false
-      console.log(this.haveGrouping)
+      if (!this.haveGrouping) {
+        for (let j = 0; j < grouping.length; j++) {
+          let i = 0
+          while (i < grouping[j].length) {
+            if (grouping[j][i] === grouping[j][i + 1]) {
+              this.haveGrouping = true
+              return
+            } else {
+              i++
+            }
+          }
+        }
+      }
+      if (!this.haveGrouping) {
+        grouping = this.ToRotate(grouping)
+        for (let j = 0; j < grouping.length; j++) {
+          let i = 0
+          while (i < grouping[j].length) {
+            if (grouping[j][i] === grouping[j][i + 1]) {
+              this.haveGrouping = true
+              return
+            } else {
+              i++
+            }
+          }
+        }
+      }
     }
   },
-
   mounted () { // 挂载后
+    this.RandomlyCreate(this.arr)
     window.onkeydown = e => {
       switch (e.keyCode) {
         case 37:
@@ -264,16 +325,23 @@ export default {
 </script>
 <style lang='stylus'>
 #app {
+  cursor pointer
+  user-select none
   display flex
   justify-content center
-
+  align-items center
+  flex-wrap wrap
+  .total {
+    overflow hidden
+    display flex
+    justify-content center
+    width 100%
+    margin 1% 0
+  }
   .main {
-    cursor pointer
-    user-select none
-    width 640px
+    width 512px
     background #929292
     border-radius 10px
-
     .row {
       overflow hidden
       display flex
@@ -282,7 +350,6 @@ export default {
       height 0
       margin 2% 0
       padding-bottom 25%
-
       .item {
         display flex
         justify-content center
